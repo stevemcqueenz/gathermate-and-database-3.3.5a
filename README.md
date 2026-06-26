@@ -17,10 +17,24 @@ server, in every zone.
 
 | Folder | What it is | Source |
 |---|---|---|
-| `GatherMate/` | The GatherMate addon (v1, native 3.3.5a) | Upstream, GPL v2 (kagaro, xinhuan, nevcairiel, ammo) |
+| `GatherMate/` | The GatherMate addon (v1, native 3.3.5a) — GPL v2 by kagaro, xinhuan, nevcairiel, ammo, **with one small added feature (Skill range, see below)** | Upstream + this repo |
 | `GatherMate_Data/` | Import companion: `MiningData` / `HerbalismData` / `TreasureData` | **Generated from AzerothCore** |
 | `GatherMate_Data/GasData.lua`, `FishData.lua` | Gas clouds + fishing pools | Upstream Wowhead data (AzerothCore doesn't expose these as static spawns) |
 | `generate.py` | The extractor, for reproducing/updating the data | This repo |
+
+### Skill range (added feature)
+
+GatherMate's **Display** options gain a **"Skill range"** dropdown that filters the map by your
+live Mining / Herbalism skill (à la pfQuest):
+
+- **Only what I can gather** — hides nodes whose required skill is above yours.
+- **Only nodes that still skill me up** — shows just the band `required ≤ skill < required + window`
+  (slider, default 100, where gathering nodes go grey).
+
+It reads your skill through GatherMate's existing (locale-aware) profession detection, gates nodes
+in GatherMate's own display iterator, and **stacks with** — never overwrites — your manual Herb/Mine
+filters. Updates automatically as you level. This is a small GPL modification to `GatherMate/`
+(`GatherMate.lua`, `Display.lua`, `Config.lua`); the rest is unmodified upstream.
 
 ## Install
 

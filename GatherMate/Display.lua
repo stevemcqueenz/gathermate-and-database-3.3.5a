@@ -314,21 +314,26 @@ end
 
 
 function Display:SKILL_LINES_CHANGED()
-	local skillname, isHeader
+	local skillname, isHeader, skillRank
 	for k,v in pairs(have_prof_skill) do
 		have_prof_skill[k] = nil
 	end
-	
+	for k in pairs(GatherMate.curSkill) do
+		GatherMate.curSkill[k] = nil
+	end
+
 	for i = 1, GetNumSkillLines() do
-		skillname, isHeader = GetSkillLineInfo(i)
+		skillname, isHeader, _, skillRank = GetSkillLineInfo(i)
 		if not isHeader and skillname then
 			for prof, skill in pairs(profession_to_skill) do
 				if strfind(skillname, prof, 1, true) then
 					have_prof_skill[skill] = true
+					GatherMate.curSkill[skill] = skillRank
 				end
 			end
 		end
 	end
+	GatherMate:UpdateSkillFilter()
 	self:UpdateVisibility()
 	self:UpdateMaps()
 end

@@ -403,6 +403,47 @@ local commonFiltersDescTable = {
 	type = "description",
 	name = L["Filter_Desc"],
 }
+options.args.display.args.skillrange = {
+	type = "group",
+	inline = true,
+	name = "Skill range",
+	order = 1.5,
+	args = {
+		mode = {
+			type = "select",
+			name = "Show by skill",
+			desc = "Only show gathering nodes relevant to your current Mining / Herbalism skill. Stacks with the manual filters below.",
+			order = 1,
+			width = "full",
+			values = {
+				["off"]        = "Off — show all nodes",
+				["gatherable"] = "Only what I can gather",
+				["skillups"]   = "Only nodes that still skill me up",
+			},
+			sorting = { "off", "gatherable", "skillups" },
+			get = function() return db.skillFilter end,
+			set = function(info, v)
+				db.skillFilter = v
+				GatherMate:UpdateSkillFilter()
+				GatherMate:SendMessage("GatherMateConfigChanged")
+			end,
+		},
+		window = {
+			type = "range",
+			name = "Skill-up window",
+			desc = "In skill-up mode, stop showing a node once your skill is this far above its requirement (gathering nodes go grey at +100).",
+			order = 2,
+			min = 25, max = 150, step = 5,
+			disabled = function() return db.skillFilter ~= "skillups" end,
+			get = function() return db.skillWindow end,
+			set = function(info, v)
+				db.skillWindow = v
+				GatherMate:UpdateSkillFilter()
+				GatherMate:SendMessage("GatherMateConfigChanged")
+			end,
+		},
+	},
+}
 options.args.display.args.filters = {
 	type = "group",
 	name = L["Filters"],

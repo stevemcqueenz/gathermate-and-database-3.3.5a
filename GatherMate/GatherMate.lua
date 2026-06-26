@@ -23,6 +23,8 @@ local defaults = {
 		showMinimap = true,
 		showWorldMap = true,
 		minimapTooltips = true,
+		skillFilter = "off",
+		skillWindow = 100,
 		filter = {
 			["*"] = {
 				["*"] = true,
@@ -225,8 +227,9 @@ do
 		local state, value = next(data, prestate)
 		local xLocal, yLocal, yw, yh = t.xLocal, t.yLocal, t.yw, t.yh
 		local radiusSquared, filterTable, ignoreFilter = t.radiusSquared, t.filterTable, t.ignoreFilter
+		local skillBlock = t.skillBlock
 		while state do
-			if filterTable[value] or ignoreFilter then 
+			if (filterTable[value] or ignoreFilter) and (ignoreFilter or not (skillBlock and skillBlock[value])) then
 				-- inline the :getXY() here in critical minimap update loop
 				local x2, y2 = floor(state / 10000) / 10000, (state % 10000) / 10000
 				local x = (x2 - xLocal) * yw
@@ -255,6 +258,7 @@ do
 		tbl.xLocal, tbl.yLocal = x, y
 		tbl.filterTable = filter[nodeType]
 		tbl.ignoreFilter = ignoreFilter
+		tbl.skillBlock = GatherMate.skillBlocked[nodeType]
 		return dbCoordIterNearby, tbl, nil
 	end
 
@@ -263,8 +267,9 @@ do
 		local data = t.data
 		local state, value = next(data, prestate)
 		local filterTable = t.filterTable
+		local skillBlock = t.skillBlock
 		while state do
-			if filterTable[value] then 
+			if filterTable[value] and not (skillBlock and skillBlock[value]) then
 				return state, value
 			end
 			state, value = next(data, state)
@@ -286,7 +291,44 @@ do
 			
 			tbl.data = t
 			tbl.filterTable = filter[nodeType]
+			tbl.skillBlock = GatherMate.skillBlocked[nodeType]
 			return dbCoordIter, tbl, nil
+		end
+	end
+end
+--[[
+	Skill-range filter. Hides gathering nodes whose required skill is outside your current skill,
+	independent of the manual per-node filters (nothing is clobbered). Recomputed on skill/config
+	change; when off, skillBlocked tables are nil so the display iterators pay no overhead.
+		"gatherable" -> require <= your skill            (hide what you can't gather)
+		"skillups"   -> your skill in [require, require+window)  (only nodes that still grant skill)
+]]
+GatherMate.curSkill = {}      -- nodeType -> your current skill rank (filled by Display:SKILL_LINES_CHANGED)
+GatherMate.skillBlocked = {}  -- nodeType -> { [nodeID] = true } of hidden nodes (or nil)
+local SKILL_FILTER_TYPES = { ["Mining"] = true, ["Herb Gathering"] = true }
+function GatherMate:UpdateSkillFilter()
+	local blocked = self.skillBlocked
+	for k in pairs(blocked) do blocked[k] = nil end
+	local mode = self.db.profile.skillFilter
+	if mode == "off" or not self.nodeMinHarvest then return end
+	local window = self.db.profile.skillWindow or 100
+	for nodeType in pairs(SKILL_FILTER_TYPES) do
+		local nm = self.nodeMinHarvest[nodeType]
+		local skill = self.curSkill[nodeType]
+		if nm then
+			local b
+			for nodeID, req in pairs(nm) do
+				local show
+				if not skill then
+					show = false
+				elseif mode == "gatherable" then
+					show = skill >= req
+				else
+					show = (skill >= req) and (skill < req + window)
+				end
+				if not show then b = b or {}; b[nodeID] = true end
+			end
+			blocked[nodeType] = b
 		end
 	end
 end
