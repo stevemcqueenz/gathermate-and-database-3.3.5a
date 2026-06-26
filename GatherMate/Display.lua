@@ -442,9 +442,9 @@ function Display:addWorldPin(coord, nodeID, nodeType, zone, index)
 		pin:SetParent(WorldMapButton)
 		pin:SetFrameStrata(worldmapStrata)
 		pin:SetFrameLevel(worldmapFrameLevel)
-		pin:SetHeight(12 * db.scale)
-		pin:SetWidth(12 * db.scale)
-		pin:SetAlpha(db.alpha)
+		pin:SetHeight(12 * db.scaleWorld)
+		pin:SetWidth(12 * db.scaleWorld)
+		pin:SetAlpha(db.alphaWorld)
 		pin:EnableMouse(true)
 		pin.texture:SetTexture(nodeTextures[nodeType][nodeID])
 		pin.texture:SetTexCoord(0, 1, 0, 1)
@@ -472,8 +472,8 @@ function Display:getMiniPin(coord, nodeID, nodeType, zone, index)
 		pin:SetParent(Minimap)
 		pin:SetFrameStrata(minimapStrata)
 		pin:SetFrameLevel(minimapFrameLevel)
-		pin:SetHeight(12 * db.scale / minimapScale)
-		pin:SetWidth(12 * db.scale / minimapScale)
+		pin:SetHeight(12 * db.scaleMinimap / minimapScale)
+		pin:SetWidth(12 * db.scaleMinimap / minimapScale)
 		--pin:SetAlpha(db.alpha)
 		pin:EnableMouse(db.minimapTooltips)
 		pin.isCircle = false
@@ -502,8 +502,8 @@ function Display:addMiniPin(pin, refresh)
 		pin.texture:SetTexCoord(0, 1, 0, 1)
 	-- if distance > 100, set back to the node texture
 	elseif (pin.isCircle or refresh) and dist_2 > db.trackDistance^2 then
-		pin:SetHeight(12 * db.scale / minimapScale)
-		pin:SetWidth(12 * db.scale / minimapScale)
+		pin:SetHeight(12 * db.scaleMinimap / minimapScale)
+		pin:SetWidth(12 * db.scaleMinimap / minimapScale)
 		pin.texture:SetTexture(nodeTextures[pin.nodeType][pin.nodeID])
 		pin.texture:SetVertexColor(1, 1, 1, 1)
 		pin.texture:SetTexCoord(0, 1, 0, 1)
@@ -556,7 +556,7 @@ function Display:addMiniPin(pin, refresh)
 		pin:Show()
 		pin:ClearAllPoints()
 		pin:SetPoint("CENTER", Minimap, "CENTER", diffX * minimapWidth, -diffY * minimapHeight)
-		pin:SetAlpha(min(alpha,db.alpha))
+		pin:SetAlpha(min(alpha,db.alphaMinimap))
 	else
 		pin:Hide()
 	end
@@ -805,8 +805,8 @@ function Display:UpdateWorldMap(force)
 			worldmapPins[index] = nil
 		end
 	end
-	if lastScale ~= db.scale or lastAlphaPref ~= db.alpha then
-		local scale, alpha = db.scale, db.alpha
+	if lastScale ~= db.scaleWorld or lastAlphaPref ~= db.alphaWorld then
+		local scale, alpha = db.scaleWorld, db.alphaWorld
 		for index, pin in pairs(worldmapPins) do
 			pin:SetHeight(12 * scale)
 			pin:SetWidth(12 * scale)

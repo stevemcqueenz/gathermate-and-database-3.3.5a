@@ -22,19 +22,27 @@ server, in every zone.
 | `GatherMate_Data/GasData.lua`, `FishData.lua` | Gas clouds + fishing pools | Upstream Wowhead data (AzerothCore doesn't expose these as static spawns) |
 | `generate.py` | The extractor, for reproducing/updating the data | This repo |
 
-### Skill range (added feature)
+### Added features
 
-GatherMate's **Display** options gain a **"Skill range"** dropdown that filters the map by your
-live Mining / Herbalism skill (à la pfQuest):
+A few small GPL modifications to `GatherMate/` (`GatherMate.lua`, `Display.lua`, `Config.lua`,
+`GatherMate.toc` + bundled `LibDataBroker-1.1` / `LibDBIcon-1.0`); everything else is unmodified upstream.
 
-- **Only what I can gather** — hides nodes whose required skill is above yours.
-- **Only nodes that still skill me up** — shows just the band `required ≤ skill < required + window`
+**Skill range** — a **Display → "Skill range"** dropdown that filters the map by your live
+Mining / Herbalism skill (à la pfQuest):
+- *Only what I can gather* — hides nodes whose required skill is above yours.
+- *Only nodes that still skill me up* — the band `required ≤ skill < required + window`
   (slider, default 100, where gathering nodes go grey).
 
 It reads your skill through GatherMate's existing (locale-aware) profession detection, gates nodes
-in GatherMate's own display iterator, and **stacks with** — never overwrites — your manual Herb/Mine
-filters. Updates automatically as you level. This is a small GPL modification to `GatherMate/`
-(`GatherMate.lua`, `Display.lua`, `Config.lua`); the rest is unmodified upstream.
+in GatherMate's own display iterator, **stacks with** (never overwrites) your manual Herb/Mine
+filters, and updates automatically as you level.
+
+**Separate Minimap / World-Map icon scale + opacity** — the single "Icon Scale" and "Icon Alpha"
+sliders are split into four (Minimap + World Map for each), so you can, e.g., keep small subtle
+minimap pins and large bold world-map ones. Existing settings migrate across automatically.
+
+**Minimap button** — a GatherMate button on the minimap; click it to open the options. Toggle it
+under Display → "Minimap button" (or it can be hidden by other minimap-button managers).
 
 ## Install
 

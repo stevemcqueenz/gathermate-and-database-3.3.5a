@@ -195,21 +195,51 @@ options.args.display.args.general = {
 					desc = "",
 					type = "description",
 				},
-				iconScale = {
+				iconScaleMinimap = {
 					order = 6,
-					name = L["Icon Scale"],
-					desc = L["Icon scaling, this lets you enlarge or shrink your icons on both the World Map and Minimap."],
+					name = "Icon Scale (Minimap)",
+					desc = "Enlarge or shrink the gathering icons on the Minimap.",
 					type = "range",
 					min = 0.5, max = 2, step = 0.01,
-					arg = "scale",
+					arg = "scaleMinimap",
 				},
-				iconAlpha = {
+				iconScaleWorld = {
+					order = 6.1,
+					name = "Icon Scale (World Map)",
+					desc = "Enlarge or shrink the gathering icons on the World Map.",
+					type = "range",
+					min = 0.5, max = 2, step = 0.01,
+					arg = "scaleWorld",
+				},
+				iconAlphaMinimap = {
 					order = 7,
-					name = L["Icon Alpha"],
-					desc = L["Icon alpha value, this lets you change the transparency of the icons. Only applies on World Map."],
+					name = "Icon Alpha (Minimap)",
+					desc = "Transparency of the gathering icons on the Minimap.",
 					type = "range",
 					min = 0.1, max = 1, step = 0.05,
-					arg = "alpha",
+					arg = "alphaMinimap",
+				},
+				iconAlphaWorld = {
+					order = 7.1,
+					name = "Icon Alpha (World Map)",
+					desc = "Transparency of the gathering icons on the World Map.",
+					type = "range",
+					min = 0.1, max = 1, step = 0.05,
+					arg = "alphaWorld",
+				},
+				minimapButton = {
+					order = 7.2,
+					name = "Minimap button",
+					desc = "Show a GatherMate button on the minimap (click it to open these options).",
+					type = "toggle",
+					get = function() return not db.minimapButton.hide end,
+					set = function(_, v)
+						db.minimapButton.hide = not v
+						local dbicon = LibStub("LibDBIcon-1.0", true)
+						if dbicon then
+							if v then dbicon:Show("GatherMate") else dbicon:Hide("GatherMate") end
+						end
+					end,
 				},
 				minimapNodeRange = {
 					order = 8,

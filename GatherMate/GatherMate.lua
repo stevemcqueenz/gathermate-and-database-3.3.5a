@@ -16,7 +16,12 @@ local defaults = {
 	profile = {
 		scale       = 0.75,
 		alpha       = 1,
-		show = { 
+		scaleMinimap = 0.75,
+		scaleWorld   = 0.75,
+		alphaMinimap = 1,
+		alphaWorld   = 1,
+		minimapButton = { hide = false },
+		show = {
 			["Treasure"] = "always",
 			["*"] = "with_profession"
 		},
@@ -96,6 +101,31 @@ function GatherMate:OnInitialize()
 	self:RegisterDBType("Treasure", GatherMateTreasureDB)
 	db = self.db.profile
 	filter = db.filter
+
+	-- migrate the single scale/alpha into split minimap + worldmap values (one-time)
+	if not db.splitDisplayMigrated then
+		db.scaleMinimap, db.scaleWorld = db.scale, db.scale
+		db.alphaMinimap, db.alphaWorld = db.alpha, db.alpha
+		db.splitDisplayMigrated = true
+	end
+
+	-- minimap button (LibDBIcon launcher that opens the options)
+	local ldb = LibStub("LibDataBroker-1.1", true)
+	local dbicon = LibStub("LibDBIcon-1.0", true)
+	if ldb and dbicon then
+		local launcher = ldb:NewDataObject("GatherMate", {
+			type = "launcher",
+			icon = "Interface\\AddOns\\GatherMate\\Artwork\\Icon",
+			OnClick = function(_, button)
+				LibStub("AceConfigDialog-3.0"):Open("GatherMate")
+			end,
+			OnTooltipShow = function(tt)
+				tt:AddLine("GatherMate")
+				tt:AddLine("|cffffff00Click|r to open options.")
+			end,
+		})
+		dbicon:Register("GatherMate", launcher, db.minimapButton)
+	end
 end
 
 --[[
