@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+"""
+AzerothCore -> GatherMate (1) gathering-database generator.
+
+Reads the live AzerothCore `gameobject` spawn table and emits GatherMate_Data-format Lua
+(MiningData / HerbalismData / TreasureData) covering every zone (vanilla + TBC + WotLK, since
+the 3.3.5 world DB contains them all). Output drops straight into the GatherMate_Data companion
+addon, which exposes it through GatherMate's native Import UI (with a per-expansion filter).
+
+Linkage:  gameobject.zoneId == WorldMapArea.dbc areaID -> zone rect ; WorldMapArea map name ==
+          GatherMate1 Constants.lua zoneData key -> GatherMate internal zoneID.
+Packing (GatherMate.lua:152):  id = floor(x*10000+0.5)*10000 + floor(y*10000+0.5)
+Transform: nx = (locLeft - worldY)/(locLeft-locRight) ; ny = (locTop - worldX)/(locTop-locBottom)
+Format:    GatherMateDataMineDB = { [zoneID] = { [packed] = nodeID, ... }, ... }
+"""
+import math, os, re, struct, sys
+import mysql.connector
+
+DB = dict(host="127.0.0.1", port=3306, user="acore", password="acore", database="acore_world")
+HERE = os.path.dirname(os.path.abspath(__file__))
+# defaults; override the GatherMate install + output dir via argv if needed
+GATHERMATE = os.path.expanduser("~/Downloads/WoW-Client-3.3.5a/Interface/AddOns/GatherMate")
+CONSTANTS_LUA = os.path.join(GATHERMATE, "Constants.lua")
+WMA_DBC = os.path.expanduser("~/hearthforge/azerothcore/run/data/dbc/WorldMapArea.dbc")
+OUT_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "out", "GatherMate_Data")
+
+# category -> (lua filename, global var). Gas/Fish are kept from the upstream Wowhead data
+# (AzerothCore doesn't expose them as static nodes), so we only generate these three.
+EMIT = {
+    "Mining":         ("MiningData.lua",     "GatherMateDataMineDB"),
+    "Herb Gathering": ("HerbalismData.lua",  "GatherMateDataHerbDB"),
+    "Treasure":       ("TreasureData.lua",   "GatherMateDataTreasureDB"),
+}
+
+
+def load_node_ids(path):
+    txt = open(path, encoding="utf-8").read()
+    name_to, cat = {}, None
+    cats = "Mining|Herb Gathering|Treasure|Extract Gas|Fishing"
+    for line in txt.splitlines():
+        mcat = re.search(r'\["(%s)"\]\s*=\s*\{' % cats, line)
+        if mcat:
+            cat = mcat.group(1); continue
+        if cat is None or re.match(r'\s*--', line):
+            continue
+        m = re.search(r'NL\["([^"]+)"\]\]\s*=\s*(\d+)', line)
+        if m:
+            name_to[m.group(1)] = (cat, int(m.group(2)))
+        if re.match(r'\s*\}', line):
+            cat = None
+    return name_to
+
+
+def load_zonedata(path):
+    txt = open(path, encoding="utf-8").read()
+    out = {}
+    for m in re.finditer(
+            r'(?m)^\s*(?:\["([^"]+)"\]|([A-Za-z][\w]*))\s*=\s*\{\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*(\d+)', txt):
+        name, w = (m.group(1) or m.group(2)), float(m.group(3))
+        if w > 100:
+            out[name] = int(m.group(5))
+    return out
+
+
+def load_worldmaparea(path, zone_by_name):
+    d = open(path, "rb").read()
+    _, nrec, _, recsize, _ = struct.unpack_from("<4sIIII", d, 0)
+    base = 20
+    sb = d[base + nrec * recsize:]
+    def s(off):
+        e = sb.find(b"\x00", off); return sb[off:e].decode("utf-8", "replace")
+    out = {}
+    for i in range(nrec):
+        off = base + i * recsize
+        _, _, areaID = struct.unpack_from("<III", d, off)
+        nameOff, = struct.unpack_from("<I", d, off + 12)
+        L, R, T, B = struct.unpack_from("<ffff", d, off + 16)
+        gm = zone_by_name.get(s(nameOff))
+        if gm is not None and areaID > 0:
+            out[areaID] = (L, R, T, B, gm)
+    return out
+
+
+def main():
+    node_ids = load_node_ids(CONSTANTS_LUA)
+    area_map = load_worldmaparea(WMA_DBC, load_zonedata(CONSTANTS_LUA))
+
+    conn = mysql.connector.connect(**DB)
+    cur = conn.cursor()
+    cur.execute("""SELECT gt.name, g.zoneId, g.position_x, g.position_y
+                   FROM gameobject g JOIN gameobject_template gt ON gt.entry = g.id
+                   WHERE gt.type = 3""")
+    rows = cur.fetchall()
+    conn.close()
+
+    # data[category][zoneID][packed] = nodeID
+    data = {c: {} for c in EMIT}
+    per_zone, off_map, no_zone, no_name = {}, 0, 0, 0
+    for name, zoneId, wx, wy in rows:
+        info = node_ids.get(name)
+        if not info or info[0] not in EMIT:
+            no_name += 1; continue
+        z = area_map.get(zoneId)
+        if z is None:
+            no_zone += 1; continue
+        L, R, T, B, gm = z
+        nx = (L - float(wy)) / (L - R)
+        ny = (T - float(wx)) / (T - B)
+        if not (0.0 <= nx <= 1.0 and 0.0 <= ny <= 1.0):
+            off_map += 1; continue
+        packed = math.floor(nx * 10000 + 0.5) * 10000 + math.floor(ny * 10000 + 0.5)
+        cat, nid = info
+        data[cat].setdefault(gm, {})[packed] = nid
+        per_zone[gm] = per_zone.get(gm, 0) + 1
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    total = 0
+    for cat, (fname, var) in EMIT.items():
+        lines = ["-- AzerothCore gathering data generated by Hearthforge. Do not edit by hand.",
+                 f"{var} = {{"]
+        cnt = 0
+        for zid in sorted(data[cat]):
+            lines.append(f"[{zid}] = {{")
+            for packed in sorted(data[cat][zid]):
+                lines.append(f"[{packed}] = {data[cat][zid][packed]},")
+                cnt += 1
+            lines.append("},")
+        lines.append("}")
+        open(os.path.join(OUT_DIR, fname), "w").write("\n".join(lines) + "\n")
+        total += cnt
+        print(f"  {var:26s} {cnt:6d} nodes / {len(data[cat])} zones -> {fname}")
+
+    print(f"  scanned {len(rows)} chests | skipped: name={no_name} zone={no_zone} off-map={off_map}")
+    print(f"  zones with data: {len(per_zone)} | TOTAL nodes: {total}")
+    print(f"  -> {OUT_DIR}")
+
+
+if __name__ == "__main__":
+    main()
