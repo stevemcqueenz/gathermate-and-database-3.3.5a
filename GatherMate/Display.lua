@@ -429,7 +429,7 @@ end
 -- Pick a pin's look: a colored proximity-circle (node style "circle", per-type trackColors) or the node icon.
 local function applyNodeTexture(pin, nodeType, nodeID)
 	if db.nodeStyle == "circle" then
-		pin.texture:SetTexture(trackingCircle)
+		pin.texture:SetTexture("Interface\\AddOns\\GatherMate\\Artwork\\node_circle")
 		local t = db.trackColors[nodeType]
 		pin.texture:SetVertexColor(t.Red, t.Green, t.Blue, t.Alpha)
 	else
