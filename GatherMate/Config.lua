@@ -450,7 +450,6 @@ options.args.display.args.skillrange = {
 				["gatherable"] = "Only what I can gather",
 				["skillups"]   = "Only nodes that still skill me up",
 			},
-			sorting = { "off", "gatherable", "skillups" },
 			get = function() return db.skillFilter end,
 			set = function(info, v)
 				db.skillFilter = v
