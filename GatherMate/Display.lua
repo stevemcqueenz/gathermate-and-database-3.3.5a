@@ -394,6 +394,7 @@ function Display:ConfigChanged()
 	db = GatherMate.db.profile
 	self:UpdateVisibility()
 	self:UpdateMaps()
+	self:RestyleAll()
 	-- TODO filter prefs
 end
 --[[
@@ -425,6 +426,23 @@ function Display:getMapPin()
 	pin:Hide()
 	return pin
 end
+-- Pick a pin's look: a colored proximity-circle (node style "circle", per-type trackColors) or the node icon.
+local function applyNodeTexture(pin, nodeType, nodeID)
+	if db.nodeStyle == "circle" then
+		pin.texture:SetTexture(trackingCircle)
+		local t = db.trackColors[nodeType]
+		pin.texture:SetVertexColor(t.Red, t.Green, t.Blue, t.Alpha)
+	else
+		pin.texture:SetTexture(nodeTextures[nodeType][nodeID])
+		pin.texture:SetVertexColor(1, 1, 1, 1)
+	end
+	pin.texture:SetTexCoord(0, 1, 0, 1)
+end
+-- Re-texture every live pin (called on config change so the node-style toggle applies instantly).
+function Display:RestyleAll()
+	for _, pin in pairs(worldmapPins) do applyNodeTexture(pin, pin.nodeType, pin.nodeID) end
+	for _, pin in pairs(minimapPins) do applyNodeTexture(pin, pin.nodeType, pin.nodeID) end
+end
 --[[
 	Add a pin to the world map
 ]]
@@ -446,9 +464,7 @@ function Display:addWorldPin(coord, nodeID, nodeType, zone, index)
 		pin:SetWidth(12 * db.scaleWorld)
 		pin:SetAlpha(db.alphaWorld)
 		pin:EnableMouse(true)
-		pin.texture:SetTexture(nodeTextures[nodeType][nodeID])
-		pin.texture:SetTexCoord(0, 1, 0, 1)
-		pin.texture:SetVertexColor(1, 1, 1, 1)
+		applyNodeTexture(pin, nodeType, nodeID)
 		pin:Show()
 		pin:ClearAllPoints()
 		pin:SetPoint("CENTER", WorldMapButton, "TOPLEFT", x *worldmapWidth, -y * worldmapHeight)
@@ -477,9 +493,7 @@ function Display:getMiniPin(coord, nodeID, nodeType, zone, index)
 		--pin:SetAlpha(db.alpha)
 		pin:EnableMouse(db.minimapTooltips)
 		pin.isCircle = false
-		pin.texture:SetTexture(nodeTextures[nodeType][nodeID])
-		pin.texture:SetTexCoord(0, 1, 0, 1)
-		pin.texture:SetVertexColor(1, 1, 1, 1)
+		applyNodeTexture(pin, nodeType, nodeID)
 		pin.x, pin.y = GatherMate:getXY(coord)
 		pin.x1, pin.y1 = GatherMate:PointToYards(pin.x,pin.y,zone)
 		minimapPins[index] = pin
@@ -504,9 +518,7 @@ function Display:addMiniPin(pin, refresh)
 	elseif (pin.isCircle or refresh) and dist_2 > db.trackDistance^2 then
 		pin:SetHeight(12 * db.scaleMinimap / minimapScale)
 		pin:SetWidth(12 * db.scaleMinimap / minimapScale)
-		pin.texture:SetTexture(nodeTextures[pin.nodeType][pin.nodeID])
-		pin.texture:SetVertexColor(1, 1, 1, 1)
-		pin.texture:SetTexCoord(0, 1, 0, 1)
+		applyNodeTexture(pin, pin.nodeType, pin.nodeID)
 		pin.isCircle = false
 	end
 	

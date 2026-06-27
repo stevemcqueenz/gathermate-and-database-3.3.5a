@@ -20,6 +20,7 @@ local defaults = {
 		scaleWorld   = 0.75,
 		alphaMinimap = 1,
 		alphaWorld   = 1,
+		nodeStyle    = "icon",
 		minimapButton = { hide = false },
 		show = {
 			["Treasure"] = "always",

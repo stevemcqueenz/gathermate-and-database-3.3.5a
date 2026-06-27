@@ -195,6 +195,14 @@ options.args.display.args.general = {
 					desc = "",
 					type = "description",
 				},
+				nodeStyle = {
+					order = 5.5,
+					name = "Node style",
+					desc = "Show gathering nodes as their item icons, or as plain per-type colored circles (a tracking-overlay look, like pfQuest). Colors follow the per-type tracking colors.",
+					type = "select",
+					values = { ["icon"] = "Icons", ["circle"] = "Colored circles" },
+					arg = "nodeStyle",
+				},
 				iconScaleMinimap = {
 					order = 6,
 					name = "Icon Scale (Minimap)",
