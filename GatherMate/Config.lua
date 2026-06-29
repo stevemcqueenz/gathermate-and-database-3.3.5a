@@ -198,10 +198,19 @@ options.args.display.args.general = {
 				nodeStyle = {
 					order = 5.5,
 					name = "Node style",
-					desc = "Show gathering nodes as their item icons, or as plain per-type colored circles (a tracking-overlay look, like pfQuest). Colors follow the per-type tracking colors.",
+					desc = "Show gathering nodes as their item icons, or as colored circles (a tracking-overlay look, like pfQuest).",
 					type = "select",
 					values = { ["icon"] = "Icons", ["circle"] = "Colored circles" },
 					arg = "nodeStyle",
+				},
+				circleColor = {
+					order = 5.6,
+					name = "Circle color",
+					desc = "When using colored circles: color them by gather type (all ore one color, all herbs another), or per individual node like pfQuest (every node its own name-hashed color).",
+					type = "select",
+					values = { ["type"] = "By gather type", ["node"] = "By node (pfQuest)" },
+					arg = "circleColor",
+					disabled = function() return db.nodeStyle ~= "circle" end,
 				},
 				iconScaleMinimap = {
 					order = 6,

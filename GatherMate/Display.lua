@@ -426,12 +426,40 @@ function Display:getMapPin()
 	pin:Hide()
 	return pin
 end
--- Pick a pin's look: a colored proximity-circle (node style "circle", per-type trackColors) or the node icon.
+-- Deterministic name->color hash, ported from pfQuest (map.lua str2rgb) so per-node circle
+-- colors match pfQuest exactly. Cached by name. Returns r,g,b in 0-1.
+local rgbcache = {}
+local function str2rgb(text)
+	if not text then return 1, 1, 1 end
+	local c = rgbcache[text]
+	if c then return c[1], c[2], c[3] end
+	local counter, l = 1, string.len(text)
+	for i = 1, l, 3 do
+		counter = (counter * 8161) % 4294967279
+			+ (string.byte(text, i) * 16776193)
+			+ ((string.byte(text, i + 1) or (l - i + 256)) * 8372226)
+			+ ((string.byte(text, i + 2) or (l - i + 256)) * 3932164)
+	end
+	local hash = (counter % 4294967291) % 16777216
+	local r = (hash - (hash % 65536)) / 65536
+	local g = ((hash - r * 65536) - ((hash - r * 65536) % 256)) / 256
+	local b = hash - r * 65536 - g * 256
+	c = { r / 255, g / 255, b / 255 }
+	rgbcache[text] = c
+	return c[1], c[2], c[3]
+end
+-- Pick a pin's look: a colored circle (style "circle") or the node icon. Circle color is either
+-- per gather-type (trackColors) or per individual node name (pfQuest-style hash).
 local function applyNodeTexture(pin, nodeType, nodeID)
 	if db.nodeStyle == "circle" then
 		pin.texture:SetTexture("Interface\\AddOns\\GatherMate\\Artwork\\node_circle")
-		local t = db.trackColors[nodeType]
-		pin.texture:SetVertexColor(t.Red, t.Green, t.Blue, t.Alpha)
+		if db.circleColor == "node" then
+			local r, g, b = str2rgb(pin.title)
+			pin.texture:SetVertexColor(r, g, b, 1)
+		else
+			local t = db.trackColors[nodeType]
+			pin.texture:SetVertexColor(t.Red, t.Green, t.Blue, t.Alpha)
+		end
 	else
 		pin.texture:SetTexture(nodeTextures[nodeType][nodeID])
 		pin.texture:SetVertexColor(1, 1, 1, 1)
