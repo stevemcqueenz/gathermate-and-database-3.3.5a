@@ -472,12 +472,12 @@ local function applyNodeTexture(pin, nodeType, nodeID)
 	end
 	pin.texture:SetTexCoord(0, 1, 0, 1)
 end
--- pfQuest-style proximity reveal: swap the node marker for pfQuest's track ring (Artwork\
--- pfquest_track, from pfQuest img\track, MIT (c) Shagu), tinted to the node's own color — so
--- approaching a node visibly "opens" it into a ring, the way pfQuest reveals nodes on the minimap.
+-- pfQuest-style proximity reveal: swap the filled node dot for the hollow cutout ring
+-- (Artwork\pfquest_nodecut, from pfQuest img\nodecut, MIT (c) Shagu), tinted to the node's own
+-- color — so approaching a node "opens" it into a ring and the node underneath shows through.
 local function revealRing(pin, on)
 	if on then
-		pin.texture:SetTexture("Interface\\AddOns\\GatherMate\\Artwork\\pfquest_track")
+		pin.texture:SetTexture("Interface\\AddOns\\GatherMate\\Artwork\\pfquest_nodecut")
 		pin.texture:SetVertexColor(nodeColor(pin))
 		pin.texture:SetTexCoord(0, 1, 0, 1)
 	else
