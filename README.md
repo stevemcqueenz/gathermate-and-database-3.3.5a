@@ -1,11 +1,22 @@
 # AzerothCore GatherMate Database (3.3.5a)
 
 **GatherMate gathering-node data extracted directly from the AzerothCore world database** —
-the *true* server spawn points for mining, herbalism, and treasure, not a Wowhead scrape.
-If you play on an AzerothCore 3.3.5a realm, these are the nodes that actually exist on your
-server, in every zone.
+the *true* server spawn points for mining, herbalism, and treasure, not a Wowhead scrape —
+plus fishing pools and gas clouds. If you play on an AzerothCore 3.3.5a realm, these are the
+nodes that actually exist on your server, in every zone.
 
-> **20,324 nodes across 60 zones** — all three expansions, from one 3.3.5a world DB:
+> **21,867 nodes across 61 zones**, all five gathering types:
+>
+> | Type | Nodes | Zones | Source |
+> |---|---|---|---|
+> | Herbalism | 12,362 | 59 | AzerothCore world DB |
+> | Mining | 7,247 | 59 | AzerothCore world DB |
+> | Fishing | 1,213 | 27 | upstream pool data |
+> | Treasure | 715 | 33 | AzerothCore world DB |
+> | Gas Clouds | 330 | 10 | upstream pool data |
+>
+> The 20,324 mining / herbalism / treasure nodes come straight from one 3.3.5a world DB and
+> span all three expansions:
 >
 > | Expansion | Nodes | Zones |
 > |---|---|---|
