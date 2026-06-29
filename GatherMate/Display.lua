@@ -314,7 +314,7 @@ end
 
 
 function Display:SKILL_LINES_CHANGED()
-	local skillname, isHeader, skillRank
+	local skillname, isHeader, _, skillRank
 	for k,v in pairs(have_prof_skill) do
 		have_prof_skill[k] = nil
 	end
