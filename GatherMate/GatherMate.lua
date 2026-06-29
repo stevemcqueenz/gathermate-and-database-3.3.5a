@@ -22,6 +22,7 @@ local defaults = {
 		alphaWorld   = 1,
 		nodeStyle    = "icon",
 		circleColor  = "node",
+		circleShape  = "filled",
 		minimapButton = { hide = false },
 		show = {
 			["Treasure"] = "always",

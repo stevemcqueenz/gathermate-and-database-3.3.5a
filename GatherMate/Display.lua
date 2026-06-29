@@ -452,7 +452,10 @@ end
 -- per gather-type (trackColors) or per individual node name (pfQuest-style hash).
 local function applyNodeTexture(pin, nodeType, nodeID)
 	if db.nodeStyle == "circle" then
-		pin.texture:SetTexture("Interface\\AddOns\\GatherMate\\Artwork\\node_circle")
+		-- pfQuest's real node texture: a soft filled dot (Artwork\pfquest_node, copied from
+		-- pfQuest img\node, MIT (c) Shagu). "ring" uses pfQuest's cutout variant instead.
+		local tex = db.circleShape == "ring" and "pfquest_nodecut" or "pfquest_node"
+		pin.texture:SetTexture("Interface\\AddOns\\GatherMate\\Artwork\\" .. tex)
 		if db.circleColor == "node" then
 			local r, g, b = str2rgb(pin.title)
 			pin.texture:SetVertexColor(r, g, b, 1)

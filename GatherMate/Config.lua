@@ -212,6 +212,15 @@ options.args.display.args.general = {
 					arg = "circleColor",
 					disabled = function() return db.nodeStyle ~= "circle" end,
 				},
+				circleShape = {
+					order = 5.7,
+					name = "Circle shape",
+					desc = "When using colored circles: a soft filled dot (pfQuest's default look) or a hollow ring (pfQuest's 'cutout' look).",
+					type = "select",
+					values = { ["filled"] = "Filled dot (pfQuest)", ["ring"] = "Hollow ring (cutout)" },
+					arg = "circleShape",
+					disabled = function() return db.nodeStyle ~= "circle" end,
+				},
 				iconScaleMinimap = {
 					order = 6,
 					name = "Icon Scale (Minimap)",
