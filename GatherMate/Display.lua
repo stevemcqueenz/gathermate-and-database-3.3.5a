@@ -419,6 +419,15 @@ function Display:getMapPin()
 	texture:SetAllPoints(pin)
 	texture:SetTexture(trackingCircle)
 	texture:SetTexCoord(0, 1, 0, 1)
+	-- pfQuest's reveal ring (Artwork\pfquest_track, copied from pfQuest img\track, MIT (c) Shagu):
+	-- a separate ring drawn AROUND the node when it's revealed, so the node marker stays put
+	-- (this mirrors pfQuest's f.hl, instead of swapping the marker out for a flat ring).
+	local hl = pin:CreateTexture(nil, "ARTWORK")
+	pin.hl = hl
+	hl:SetTexture("Interface\\AddOns\\GatherMate\\Artwork\\pfquest_track")
+	hl:SetPoint("TOPLEFT", pin, "TOPLEFT", -3, 3)
+	hl:SetPoint("BOTTOMRIGHT", pin, "BOTTOMRIGHT", 3, -3)
+	hl:Hide()
 	pin:RegisterForClicks("LeftButtonUp", "RightButtonUp");
 	pin:SetScript("OnEnter", showPin)
 	pin:SetScript("OnLeave", hidePin)
@@ -468,6 +477,24 @@ local function applyNodeTexture(pin, nodeType, nodeID)
 		pin.texture:SetVertexColor(1, 1, 1, 1)
 	end
 	pin.texture:SetTexCoord(0, 1, 0, 1)
+end
+-- pfQuest-style reveal: show/hide the track ring around a node, tinted to match its marker
+-- (per-node hash color when "By node (pfQuest)", else the gather-type color).
+local function revealRing(pin, on)
+	if not pin.hl then return end
+	if on then
+		local r, g, b
+		if db.circleColor == "node" then
+			r, g, b = str2rgb(pin.title)
+		else
+			local t = db.trackColors[pin.nodeType]
+			r, g, b = t.Red, t.Green, t.Blue
+		end
+		pin.hl:SetVertexColor(r, g, b, 1)
+		pin.hl:Show()
+	else
+		pin.hl:Hide()
+	end
 end
 -- Re-texture every live pin (called on config change so the node-style toggle applies instantly).
 function Display:RestyleAll()
@@ -536,21 +563,34 @@ function Display:addMiniPin(pin, refresh)
 	local xDist, yDist = pin.x1 - lastXY, pin.y1 - lastYY
 	-- calculate relative position and distance to the player
 	local dist_2 = xDist*xDist + yDist*yDist
-	-- if distance <= db.trackDistance, convert to the circle texture
-	if (not pin.isCircle or refresh) and trackShow[pin.nodeType] and dist_2 <= db.trackDistance^2 then
-		pin.texture:SetTexture(trackingCircle)
-		local t = db.trackColors[pin.nodeType]
-		pin.texture:SetVertexColor(t.Red, t.Green, t.Blue, t.Alpha)
-		pin:SetHeight(10 / minimapScale)
-		pin:SetWidth(10 / minimapScale)
-		pin.isCircle = true
-		pin.texture:SetTexCoord(0, 1, 0, 1)
-	-- if distance > 100, set back to the node texture
-	elseif (pin.isCircle or refresh) and dist_2 > db.trackDistance^2 then
-		pin:SetHeight(12 * db.scaleMinimap / minimapScale)
-		pin:SetWidth(12 * db.scaleMinimap / minimapScale)
-		applyNodeTexture(pin, pin.nodeType, pin.nodeID)
-		pin.isCircle = false
+	-- reveal when within trackDistance and tracking is on for this node type
+	local near = trackShow[pin.nodeType] and dist_2 <= db.trackDistance^2
+	if db.nodeStyle == "circle" then
+		-- pfQuest behaviour: keep the node marker in place, add the track ring around it.
+		if near and (not pin.isCircle or refresh) then
+			revealRing(pin, true)
+			pin.isCircle = true
+		elseif not near and (pin.isCircle or refresh) then
+			revealRing(pin, false)
+			pin.isCircle = false
+		end
+	else
+		-- classic GatherMate behaviour for icon style: swap the marker for the tracking circle.
+		if pin.hl then pin.hl:Hide() end
+		if near and (not pin.isCircle or refresh) then
+			pin.texture:SetTexture(trackingCircle)
+			local t = db.trackColors[pin.nodeType]
+			pin.texture:SetVertexColor(t.Red, t.Green, t.Blue, t.Alpha)
+			pin:SetHeight(10 / minimapScale)
+			pin:SetWidth(10 / minimapScale)
+			pin.isCircle = true
+			pin.texture:SetTexCoord(0, 1, 0, 1)
+		elseif not near and (pin.isCircle or refresh) then
+			pin:SetHeight(12 * db.scaleMinimap / minimapScale)
+			pin:SetWidth(12 * db.scaleMinimap / minimapScale)
+			applyNodeTexture(pin, pin.nodeType, pin.nodeID)
+			pin.isCircle = false
+		end
 	end
 	
 	-- support for rotating minimap - transpose coordinates for the circular movement
