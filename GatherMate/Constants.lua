@@ -431,17 +431,6 @@ local rare_spawns = {
 
 }
 Collector.rareNodes = rare_spawns
--- Reverse of the above: base node -> the rare nodes that can spawn in its place
--- (e.g. Iron Deposit 203 -> {Silver Vein 204, Gold Vein 205}). The display module
--- uses this to list "also here" nodes on a pin's tooltip.
-local rare_spawns_reverse = {}
-for rare, bases in pairs(rare_spawns) do
-	for base in pairs(bases) do
-		rare_spawns_reverse[base] = rare_spawns_reverse[base] or {}
-		rare_spawns_reverse[base][rare] = true
-	end
-end
-GatherMate.rareNodesReverse = rare_spawns_reverse
 -- Format zone = { "Database", "new node id"}
 local nodeRemap = {
 	[78] = { ["Herb Gathering"] = 452},

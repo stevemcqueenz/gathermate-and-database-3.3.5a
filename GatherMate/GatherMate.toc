@@ -7,7 +7,7 @@
 ## Author: kagaro, Xinhuan, Ammo, Nevcairiel
 ## X-Email: sal.scotto@gmail.com
 ## X-Credits: OttoDeFe for the launher icon.
-## SavedVariables: GatherMateDB, GatherMateHerbDB, GatherMateMineDB, GatherMateFishDB, GatherMateGasDB, GatherMateTreasureDB
+## SavedVariables: GatherMateDB, GatherMateHerbDB, GatherMateMineDB, GatherMateFishDB, GatherMateGasDB, GatherMateTreasureDB, GatherMateExtraDB
 ## X-Category: Map
 ## Version: v1.23
 ## X-License: GPL v2

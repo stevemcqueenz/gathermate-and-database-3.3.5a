@@ -61,6 +61,15 @@ function GatherMateData:MergeMines(clear,zoneFilter)
 			end
 		end
 	end
+	if GatherMateDataMineExtraDB then
+		for zoneID, node_table in pairs(GatherMateDataMineExtraDB) do
+			if zoneFilter and zoneFilter[zoneID] or not zoneFilter then
+				for coord, extras in pairs(node_table) do
+					GatherMate:InjectExtraNodes("Mining", zoneID, coord, extras)
+				end
+			end
+		end
+	end
 end
 
 -- herbs
@@ -70,6 +79,15 @@ function GatherMateData:MergeHerbs(clear,zoneFilter)
 		if zoneFilter and zoneFilter[zoneID] or not zoneFilter then
 			for coord, nodeID in pairs(node_table) do
 				GatherMate:InjectNode(zoneID,coord,"Herb Gathering", nodeID)
+			end
+		end
+	end
+	if GatherMateDataHerbExtraDB then
+		for zoneID, node_table in pairs(GatherMateDataHerbExtraDB) do
+			if zoneFilter and zoneFilter[zoneID] or not zoneFilter then
+				for coord, extras in pairs(node_table) do
+					GatherMate:InjectExtraNodes("Herb Gathering", zoneID, coord, extras)
+				end
 			end
 		end
 	end
@@ -107,6 +125,15 @@ function GatherMateData:MergeTreasure(clear,zoneFilter)
 			end
 		end
 	end
+	if GatherMateDataTreasureExtraDB then
+		for zoneID, node_table in pairs(GatherMateDataTreasureExtraDB) do
+			if zoneFilter and zoneFilter[zoneID] or not zoneFilter then
+				for coord, extras in pairs(node_table) do
+					GatherMate:InjectExtraNodes("Treasure", zoneID, coord, extras)
+				end
+			end
+		end
+	end
 end
 
 
@@ -116,4 +143,7 @@ function GatherMateData:CleanupImportData()
 	GatherMateDataGasDB = nil
 	GatherMateDataFishDB = nil
 	GatherMateDataTreasureDB = nil
+	GatherMateDataHerbExtraDB = nil
+	GatherMateDataMineExtraDB = nil
+	GatherMateDataTreasureExtraDB = nil
 end

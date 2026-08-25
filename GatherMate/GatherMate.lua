@@ -94,6 +94,8 @@ function GatherMate:OnInitialize()
 	GatherMateGasDB = GatherMateGasDB or {}
 	GatherMateFishDB = GatherMateFishDB or {}
 	GatherMateTreasureDB = GatherMateTreasureDB or {}
+	-- pooled spawn metadata: nodeType -> zoneID -> coord -> { other nodeIDs that share the spot }
+	GatherMateExtraDB = GatherMateExtraDB or {}
 	self.gmdbs = {}
 	self.db_types = {}
 	gmdbs = self.gmdbs
@@ -180,6 +182,7 @@ function GatherMate:ClearDB(dbx)
 			db[k] = nil
 		end
 	end
+	GatherMateExtraDB[dbx] = nil
 end
 --[[
 	create an ID for an x, y coordinate to save space, we use a very simple format: xxxxyyyy
@@ -238,6 +241,21 @@ function GatherMate:InjectNode(zoneID, coords, nodeType, nodeID)
 	db[zoneID] = db[zoneID] or {}
 	db[zoneID][coords] = nodeID
 end
+--[[
+	Pooled-spawn metadata (which other nodes share a physical spot with the
+	stored node), injected by the importer and read by the display tooltip.
+]]
+function GatherMate:InjectExtraNodes(nodeType, zoneID, coords, extras)
+	GatherMateExtraDB[nodeType] = GatherMateExtraDB[nodeType] or {}
+	GatherMateExtraDB[nodeType][zoneID] = GatherMateExtraDB[nodeType][zoneID] or {}
+	GatherMateExtraDB[nodeType][zoneID][coords] = extras
+end
+function GatherMate:GetExtraNodes(nodeType, zoneID, coords)
+	local t = GatherMateExtraDB[nodeType]
+	if not t then return end
+	t = t[zoneID]
+	if t then return t[coords] end
+end
 function GatherMate:DeleteNode(zoneID, coords, nodeType)
 	-- db lock check
 	if GatherMate.db.profile.dbLocks[nodeType] then
@@ -254,6 +272,22 @@ do
 	local emptyTbl = {}
 	local tablestack = setmetatable({}, {__mode = 'k'})
 	
+	-- A pooled spawn is shown when its base node OR any of the nodes that share the
+	-- same spot passes the manual per-node filter (so "show Silver" still surfaces the
+	-- Iron/Silver/Gold locations). No extraTable means the spot has no pooled siblings.
+	local function filterAllows(filterTable, extraTable, state, value)
+		if filterTable[value] then return true end
+		if extraTable then
+			local extras = extraTable[state]
+			if extras then
+				for i = 1, #extras do
+					if filterTable[extras[i]] then return true end
+				end
+			end
+		end
+		return false
+	end
+	
 	local function dbCoordIterNearby(t, prestate)
 		if not t then return nil end
 		local data = t.data
@@ -261,8 +295,9 @@ do
 		local xLocal, yLocal, yw, yh = t.xLocal, t.yLocal, t.yw, t.yh
 		local radiusSquared, filterTable, ignoreFilter = t.radiusSquared, t.filterTable, t.ignoreFilter
 		local skillBlock = t.skillBlock
+		local extraTable = t.extraTable
 		while state do
-			if (filterTable[value] or ignoreFilter) and (ignoreFilter or not (skillBlock and skillBlock[value])) then
+			if (ignoreFilter or filterAllows(filterTable, extraTable, state, value)) and (ignoreFilter or not (skillBlock and skillBlock[value])) then
 				-- inline the :getXY() here in critical minimap update loop
 				local x2, y2 = floor(state / 10000) / 10000, (state % 10000) / 10000
 				local x = (x2 - xLocal) * yw
@@ -292,6 +327,7 @@ do
 		tbl.filterTable = filter[nodeType]
 		tbl.ignoreFilter = ignoreFilter
 		tbl.skillBlock = GatherMate.skillBlocked[nodeType]
+		tbl.extraTable = GatherMateExtraDB[nodeType] and GatherMateExtraDB[nodeType][self.zoneData[zone][3]]
 		return dbCoordIterNearby, tbl, nil
 	end
 
@@ -301,8 +337,9 @@ do
 		local state, value = next(data, prestate)
 		local filterTable = t.filterTable
 		local skillBlock = t.skillBlock
+		local extraTable = t.extraTable
 		while state do
-			if filterTable[value] and not (skillBlock and skillBlock[value]) then
+			if filterAllows(filterTable, extraTable, state, value) and not (skillBlock and skillBlock[value]) then
 				return state, value
 			end
 			state, value = next(data, state)
@@ -325,6 +362,7 @@ do
 			tbl.data = t
 			tbl.filterTable = filter[nodeType]
 			tbl.skillBlock = GatherMate.skillBlocked[nodeType]
+			tbl.extraTable = GatherMateExtraDB[nodeType] and GatherMateExtraDB[nodeType][self.zoneData[zone][3]]
 			return dbCoordIter, tbl, nil
 		end
 	end
