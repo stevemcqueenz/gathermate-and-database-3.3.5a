@@ -51,6 +51,52 @@ def load_node_ids(path):
     return name_to
 
 
+def load_rare_spawns(path):
+    """Parse GatherMate's `rare_spawns` table (Constants.lua).
+
+    Maps a rare node ID to the set of base node IDs it replaces (e.g. Silver
+    Vein 204 -> {Tin 202, Iron 203}). Pooled server spawns that share one spot
+    must collapse to the BASE node, never the rare one.
+    """
+    txt = open(path, encoding="utf-8").read()
+    out, in_block = {}, False
+    for line in txt.splitlines():
+        if re.search(r'local\s+rare_spawns\s*=\s*\{', line):
+            in_block = True
+            continue
+        if not in_block:
+            continue
+        m = re.match(r'\s*\[(\d+)\]\s*=\s*\{([^}]*)\}', line)
+        if m:
+            bases = {int(b) for b in re.findall(r'\[(\d+)\]\s*=\s*true', m.group(2))}
+            out[int(m.group(1))] = bases
+            continue
+        if re.match(r'\s*\}', line):
+            break
+    return out
+
+
+def resolve_node(candidates, rare_spawns, freq):
+    """Collapse pooled spawns that share one physical spot into a single node.
+
+    A rare node (Silver/Gold/Truesilver vein, Khorium, ...) that sits on the
+    same coordinate as the base node it replaces (Iron/Tin, Mithril, ...) is
+    dropped in favour of that base node, matching GatherMate's runtime
+    `Collector.rareNodes` logic. Any residual collision is settled by server
+    spawn frequency (most common wins), then by lowest node ID.
+    """
+    present = set(candidates)
+    while True:
+        dropped = {n for n in present
+                   if n in rare_spawns and (rare_spawns[n] & present)}
+        if not dropped:
+            break
+        present -= dropped
+    if len(present) == 1:
+        return next(iter(present))
+    return max(present, key=lambda n: (freq.get(n, 0), -n))
+
+
 def load_zonedata(path):
     txt = open(path, encoding="utf-8").read()
     out = {}
@@ -83,6 +129,7 @@ def load_worldmaparea(path, zone_by_name):
 
 def main():
     node_ids = load_node_ids(CONSTANTS_LUA)
+    rare_spawns = load_rare_spawns(CONSTANTS_LUA)
     area_map = load_worldmaparea(WMA_DBC, load_zonedata(CONSTANTS_LUA))
 
     conn = mysql.connector.connect(**DB)
@@ -93,8 +140,9 @@ def main():
     rows = cur.fetchall()
     conn.close()
 
-    # data[category][zoneID][packed] = nodeID
+    # data[category][zoneID][packed] = set of candidate node IDs, collapsed to one below
     data = {c: {} for c in EMIT}
+    freq = {}  # nodeID -> total server spawn count (for rare-vs-base tiebreaks)
     per_zone, off_map, no_zone, no_name = {}, 0, 0, 0
     for name, zoneId, wx, wy in rows:
         info = node_ids.get(name)
@@ -110,8 +158,21 @@ def main():
             off_map += 1; continue
         packed = math.floor(nx * 10000 + 0.5) * 10000 + math.floor(ny * 10000 + 0.5)
         cat, nid = info
-        data[cat].setdefault(gm, {})[packed] = nid
-        per_zone[gm] = per_zone.get(gm, 0) + 1
+        data[cat].setdefault(gm, {}).setdefault(packed, set()).add(nid)
+        freq[nid] = freq.get(nid, 0) + 1
+
+    # Pooled spawns (e.g. an ore pool holding Iron + Silver + Gold at one spot)
+    # collapse to a single node per physical location; the base node wins.
+    collapsed = 0
+    for cat in data:
+        for gm in data[cat]:
+            per_zone[gm] = per_zone.get(gm, 0) + len(data[cat][gm])
+            for packed, ids in list(data[cat][gm].items()):
+                if len(ids) > 1:
+                    collapsed += 1
+                data[cat][gm][packed] = resolve_node(ids, rare_spawns, freq)
+    if collapsed:
+        print(f"  collapsed {collapsed} pooled spawns (rare node folded into its base node)")
 
     os.makedirs(OUT_DIR, exist_ok=True)
     total = 0
