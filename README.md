@@ -55,6 +55,12 @@ minimap pins and large bold world-map ones. Existing settings migrate across aut
 **Minimap button** — a GatherMate button on the minimap; click it to open the options. Toggle it
 under Display → "Minimap button" (or it can be hidden by other minimap-button managers).
 
+**Pooled-node tooltips** — the AzerothCore data pools several veins/herbs on one spawn point
+(e.g. an ore node that can be Iron, Silver *or* Gold). Those spawn points store the base node
+(Iron), and hovering the pin now lists the alternatives that actually share that exact spot
+(`Iron Deposit (125)`, `Silver Vein (75)`, `Gold Vein (155)`) — the same way the server pools
+them, not a blanket "X can also be Y" guess.
+
 ## Install
 
 1. Copy `GatherMate/` and `GatherMate_Data/` into your client's `Interface/AddOns/`.

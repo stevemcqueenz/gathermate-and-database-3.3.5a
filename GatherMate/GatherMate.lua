@@ -94,6 +94,8 @@ function GatherMate:OnInitialize()
 	GatherMateGasDB = GatherMateGasDB or {}
 	GatherMateFishDB = GatherMateFishDB or {}
 	GatherMateTreasureDB = GatherMateTreasureDB or {}
+	-- pooled spawn metadata: nodeType -> zoneID -> coord -> { other nodeIDs that share the spot }
+	GatherMateExtraDB = GatherMateExtraDB or {}
 	self.gmdbs = {}
 	self.db_types = {}
 	gmdbs = self.gmdbs
@@ -180,6 +182,7 @@ function GatherMate:ClearDB(dbx)
 			db[k] = nil
 		end
 	end
+	GatherMateExtraDB[dbx] = nil
 end
 --[[
 	create an ID for an x, y coordinate to save space, we use a very simple format: xxxxyyyy
@@ -237,6 +240,21 @@ function GatherMate:InjectNode(zoneID, coords, nodeType, nodeID)
 	end
 	db[zoneID] = db[zoneID] or {}
 	db[zoneID][coords] = nodeID
+end
+--[[
+	Pooled-spawn metadata (which other nodes share a physical spot with the
+	stored node), injected by the importer and read by the display tooltip.
+]]
+function GatherMate:InjectExtraNodes(nodeType, zoneID, coords, extras)
+	GatherMateExtraDB[nodeType] = GatherMateExtraDB[nodeType] or {}
+	GatherMateExtraDB[nodeType][zoneID] = GatherMateExtraDB[nodeType][zoneID] or {}
+	GatherMateExtraDB[nodeType][zoneID][coords] = extras
+end
+function GatherMate:GetExtraNodes(nodeType, zoneID, coords)
+	local t = GatherMateExtraDB[nodeType]
+	if not t then return end
+	t = t[zoneID]
+	if t then return t[coords] end
 end
 function GatherMate:DeleteNode(zoneID, coords, nodeType)
 	-- db lock check

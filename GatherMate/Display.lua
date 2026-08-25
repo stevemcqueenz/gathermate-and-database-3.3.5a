@@ -112,22 +112,18 @@ local function showPin(self)
 		if lvl then
 			text = text..format(" (%d)", lvl)
 		end
-		-- pooled rare nodes that share this base node's spawn point (e.g. Iron also
-		-- yields Silver/Gold): list them beneath the base node, pfQuest-style.
-		local rares = GatherMate.rareNodesReverse and GatherMate.rareNodesReverse[self.nodeID]
-		if rares then
-			local rareList = {}
-			for rareID in pairs(rares) do
-				rareList[#rareList + 1] = rareID
-			end
-			table.sort(rareList)
-			for _, rareID in ipairs(rareList) do
-				local name = GatherMate:GetNameForNode(self.nodeType, rareID)
+		-- pooled nodes that share this exact spawn point (imported alongside the
+		-- base node): list them beneath it. Only what actually spawns here.
+		local zoneID = self.zone and GatherMate.zoneData[self.zone] and GatherMate.zoneData[self.zone][3]
+		local extras = zoneID and GatherMate:GetExtraNodes(self.nodeType, zoneID, self.coords)
+		if extras then
+			for _, extraID in ipairs(extras) do
+				local name = GatherMate:GetNameForNode(self.nodeType, extraID)
 				if name then
 					text = text .. "\n" .. format(tooltip_template, t[self.nodeType].Alpha*255, t[self.nodeType].Red*255, t[self.nodeType].Green*255, t[self.nodeType].Blue*255, name)
-					local rareLvl = GatherMate.nodeMinHarvest[self.nodeType][rareID]
-					if rareLvl then
-						text = text..format(" (%d)", rareLvl)
+					local extraLvl = GatherMate.nodeMinHarvest[self.nodeType][extraID]
+					if extraLvl then
+						text = text..format(" (%d)", extraLvl)
 					end
 				end
 			end
